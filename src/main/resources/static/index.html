@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Brinelog</title>
+  <style>
+    :root { color-scheme: dark; }
+    body {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      background: #141210;
+      color: #f3efe6;
+    }
+    main { max-width: 720px; margin: 0 auto; padding: 48px 20px 80px; }
+    h1 { font-weight: 500; font-size: 42px; margin: 0 0 8px; }
+    p.lead { color: #c8bfb0; margin-top: 0; }
+    form, section { background: #1e1b17; border: 1px solid #3a342c; border-radius: 12px; padding: 20px; }
+    label { display: block; font-size: 14px; margin: 12px 0 4px; color: #c8bfb0; }
+    input, select, button {
+      width: 100%; box-sizing: border-box; font: inherit; font-size: 16px;
+      padding: 10px 12px; border-radius: 8px; border: 1px solid #3a342c; background: #141210; color: inherit;
+    }
+    button { margin-top: 16px; background: #e7d7b1; color: #141210; border: 0; cursor: pointer; }
+    .resultado { margin-top: 20px; font-size: 28px; }
+    .POTE { color: #b7d7a8; }
+    .ESPERA { color: #e7d7b1; }
+    .DESCARTE { color: #e7a8a0; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 10px 0; border-bottom: 1px solid #3a342c; }
+    .motivo { color: #c8bfb0; font-size: 15px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Brinelog</h1>
+    <p class="lead">Manda um lote. A API diz se vai para o pote, se espera ou se descarta.</p>
+
+    <form id="form">
+      <label>Vegetal</label>
+      <input name="vegetal" value="repolho" required>
+      <label>Sal (%)</label>
+      <input name="salPercent" type="number" step="0.1" value="2.5" required>
+      <label>Dias</label>
+      <input name="dias" type="number" value="10" required>
+      <label>Temperatura (°C)</label>
+      <input name="temperaturaC" type="number" step="0.1" value="18" required>
+      <label>Critério</label>
+      <select name="criterio">
+        <option value="COMPLETO">Completo</option>
+        <option value="SEGURANCA">Segurança</option>
+        <option value="ACIDEZ">Acidez</option>
+        <option value="PONTO">Ponto</option>
+      </select>
+      <button type="submit">Avaliar lote</button>
+      <div id="resultado" class="resultado"></div>
+    </form>
+
+    <section style="margin-top: 24px;">
+      <h2>Lotes salvos</h2>
+      <ul id="lista"></ul>
+    </section>
+  </main>
+  <script>
+    const resultado = document.querySelector("#resultado");
+    const lista = document.querySelector("#lista");
+
+    function linha(lote) {
+      return `<li><strong class="${lote.veredito}">${lote.veredito}</strong> · ${lote.vegetal} · nota ${lote.nota}<div class="motivo">${lote.motivo}</div></li>`;
+    }
+
+    async function carregar() {
+      const lotes = await fetch("/lotes").then(r => r.json());
+      lista.innerHTML = lotes.length ? lotes.map(linha).join("") : "<li>Nenhum lote ainda.</li>";
+    }
+
+    document.querySelector("#form").addEventListener("submit", async (evento) => {
+      evento.preventDefault();
+      const dados = Object.fromEntries(new FormData(evento.target));
+      dados.salPercent = Number(dados.salPercent);
+      dados.dias = Number(dados.dias);
+      dados.temperaturaC = Number(dados.temperaturaC);
+      const resposta = await fetch("/lotes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(dados)
+      });
+      const lote = await resposta.json();
+      resultado.className = "resultado " + lote.veredito;
+      resultado.textContent = lote.veredito + " · " + lote.nota;
+      carregar();
+    });
+
+    carregar();
+  </script>
+</body>
+</html>
